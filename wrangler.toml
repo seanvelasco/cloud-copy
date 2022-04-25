@@ -1,0 +1,14 @@
+name = "s3"
+type = "webpack"
+workers_dev = true
+zone_id = '1413fbbe1c42fcc52a2c1b1c92258c1c'
+account_id = 'a75b72f7481e84a4dda6d678087fa36a'
+usage_model = ''
+compatibility_date = "2022-04-23"
+
+[[r2_buckets]]
+binding = 'BUCKET'
+bucket_name = 'diagnostics'
+
+preview_binding = 'BUCKET'
+preview_bucket_name = 'diagnostics'

@@ -1,0 +1,16 @@
+{
+  "name": "buckets",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "publish": "wrangler publish"
+    
+  },
+  "author": "Sean Velasco <seanvelasco@ieee.org>",
+  "license": "ISC",
+  "dependencies": {
+    "itty-router": "^2.6.1"
+  }
+}
