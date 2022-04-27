@@ -3,71 +3,139 @@ import { Router } from 'itty-router'
 const router = Router()
 
 addEventListener('fetch', event => {
-    event.respondWith(router.handle(event.request))
+    event.respondWith(router.handle(event.request, event))
+})
+
+
+router.options('*', (request) => {
+	if (request.headers.get("Origin") !== null &&
+		request.headers.get("Access-Control-Request-Method") !== null &&
+		request.headers.get("Access-Control-Request-Headers") !== null) {
+		// Handle CORS pre-flight request.
+		return new Response(null, {
+			headers: {
+				"Access-Control-Allow-Origin": "*",
+				"Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
+				"Access-Control-Allow-Headers": "Content-Type, Origin",
+			}
+		})
+	} else {
+		// Handle standard OPTIONS request.
+		return new Response(null, {
+			headers: {
+		  	"Allow": "GET, HEAD, POST, OPTIONS",
+			}
+		})
+	}
 })
 
 router.post('/', async (request) => {
 
-    const formData = await request.formData()
-    const file = formData.get('file')
-    const { name, type, size } = file
+    try {
 
-    const contentType = type
+        const formData = await request.formData()
 
-    const fileData = await file.arrayBuffer()
+        const id = formData.get('id')
 
-    // decodeURIComponent(name)
+        const file = formData.get('file') || formData.get('files')
 
-    const ext = name.split('.').pop().toLowerCase()
+        for (const entries of formData) {
 
-    const [filename, ...extensions] = name.split('.')
-    let extension = extensions.join('.')
-
-    const uniqueFilename = crypto.randomUUID() + '.' + ext
-
-    await BUCKET.put(uniqueFilename, fileData, { httpMetadata: { type, contentType } })
-    
-    const returnUrl = new URL(request.url)
-	returnUrl.searchParams.delete('key')
-	returnUrl.pathname = uniqueFilename
-    const href = returnUrl.href
-
-    const payload = {
-        success: true,
-        message: `${name} uploaded successfully`,
-        href
-    }
-
-    return new Response(JSON.stringify(payload), {
-        status: 200,
-        headers: {
-            'Content-Type': 'application/json'
+            const file = entries[1]
+           
+            const { name, type, size } = file
+            console.log(name, type, size)
         }
-    })
+
+        const { name, type, size } = file
+
+        console.log(name, type, size)
+
+    
+        const contentType = type
+
+
+        const fileData = await file.arrayBuffer()
+
+        // decodeURIComponent(name)
+
+        const ext = name.split('.').pop().toLowerCase()
+
+        const [filename, ...extensions] = name.split('.')
+        let extension = extensions.join('.')
+
+        let uniqueFilename = 'random'
+
+        if (id) {
+            uniqueFilename = id
+        }
+        else {
+            uniqueFilename = crypto.randomUUID() + '.' + ext
+        }
+
+        await DIAGNOSTICS.put(uniqueFilename, fileData, { httpMetadata: { type, contentType } })
+        
+        const returnUrl = new URL(request.url)
+        returnUrl.searchParams.delete('key')
+        returnUrl.pathname = uniqueFilename
+        const href = returnUrl.href
+
+        const payload = {
+            success: true,
+            message: `${name} uploaded successfully`,
+            href
+        }
+
+        return new Response(JSON.stringify(payload), {
+            status: 200,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET,HEAD,POST,OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Origin',
+                'Access-Control-Max-Age': '86400',
+                'Content-Type': 'application/json'
+            }
+        })
+    }
+    catch (error) {
+        console.log(error)
+        return new Response(JSON.stringify({
+            success: false,
+            message: error.message
+        }), {
+            status: 400,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET,HEAD,POST,OPTIONS',
+                'Access-Control-Max-Age': '86400',
+                'Content-Type': 'application/json'
+            }
+        })
+    }
 })
 
 router.get('/favicon.ico', async () => {
     return await fetch('https://seanvelasco.com/favicon.ico')
 })
 
-router.get('/:key', async (request) => {
+router.get('/:key', async (request, event) => {
 
     const cache = caches.default
 
-    let cachedResponse = await cache.match(request)
+    let response = await cache.match(request)
 
-    if (!cachedResponse) {
+    if (!response) {
 
         let body
 
         try {
-            body = await BUCKET.get(request.params.key)
+            body = await DIAGNOSTICS.get(request.params.key)
         }
         catch (error) {
             return new Response('Invalid key', { status: 400 })
         }
-
-        return new Response(await body.arrayBuffer(), {
+        
+        response = new Response(await body.arrayBuffer(), {
             status: 200,
             headers: {
                 'cache-control': 'max-age=31536000',
@@ -75,9 +143,10 @@ router.get('/:key', async (request) => {
                 'etag': body.etag
             }
         })
-    }
 
-    return cachedResponse
+        event.waitUntil(cache.put(request, response.clone()))
+    }
+    return response
 })
 
 
@@ -86,11 +155,17 @@ router.delete('/:key', async (request) => {
     
         const { key } = request.params
         
-        await BUCKET.delete(key)
+        await DIAGNOSTICS.delete(key)
 
-        return new Response(`${key} deleted from R2 bucket`)
+        return new Response(`${key} deleted from R2 DIAGNOSTICS`)
 })
 
 router.all('*', async () => {
-    return new Response(`Not found`, { status: 404 })
+    return new Response(`Not found`, {
+        status: 404,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET,HEAD,POST,OPTIONS'
+        }
+    })
 })

@@ -7,8 +7,8 @@ usage_model = ''
 compatibility_date = "2022-04-23"
 
 [[r2_buckets]]
-binding = 'BUCKET'
+binding = 'DIAGNOSTICS'
 bucket_name = 'diagnostics'
 
-preview_binding = 'BUCKET'
+preview_binding = 'DIAGNOSTICS'
 preview_bucket_name = 'diagnostics'
