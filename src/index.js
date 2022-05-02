@@ -135,7 +135,7 @@ router.get('/:key', async (request, event) => {
             return new Response('Invalid key', { status: 400 })
         }
         
-        response = new Response(await body.arrayBuffer(), {
+        response = new Response(await body.body, {
             status: 200,
             headers: {
                 'cache-control': 'max-age=31536000',
