@@ -6,27 +6,25 @@ addEventListener('fetch', event => {
     event.respondWith(router.handle(event.request, event))
 })
 
-
 router.options('*', (request) => {
-	if (request.headers.get("Origin") !== null &&
-		request.headers.get("Access-Control-Request-Method") !== null &&
-		request.headers.get("Access-Control-Request-Headers") !== null) {
-		// Handle CORS pre-flight request.
-		return new Response(null, {
-			headers: {
-				"Access-Control-Allow-Origin": "*",
-				"Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
-				"Access-Control-Allow-Headers": "Content-Type, Origin",
-			}
-		})
-	} else {
-		// Handle standard OPTIONS request.
-		return new Response(null, {
-			headers: {
-		  	"Allow": "GET, HEAD, POST, OPTIONS",
-			}
-		})
-	}
+    if (request.headers.get("Origin") !== null &&
+        request.headers.get("Access-Control-Request-Method") !== null &&
+        request.headers.get("Access-Control-Request-Headers") !== null) {
+        // Handle CORS pre-flight request.
+        return new Response(null, {
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Origin",
+            }
+        })
+    } else {
+        return new Response(null, {
+            headers: {
+                "Allow": "GET, HEAD, POST, OPTIONS",
+            }
+        })
+    }
 })
 
 router.post('/', async (request) => {
@@ -42,7 +40,7 @@ router.post('/', async (request) => {
         for (const entries of formData) {
 
             const file = entries[1]
-           
+
             const { name, type, size } = file
             console.log(name, type, size)
         }
@@ -51,9 +49,8 @@ router.post('/', async (request) => {
 
         console.log(name, type, size)
 
-    
-        const contentType = type
 
+        const contentType = type
 
         const fileData = await file.arrayBuffer()
 
@@ -73,8 +70,8 @@ router.post('/', async (request) => {
             uniqueFilename = crypto.randomUUID() + '.' + ext
         }
 
-        await DIAGNOSTICS.put(uniqueFilename, fileData, { httpMetadata: { type, contentType } })
-        
+        await BUCKET.put(uniqueFilename, fileData, { httpMetadata: { type, contentType } })
+
         const returnUrl = new URL(request.url)
         returnUrl.searchParams.delete('key')
         returnUrl.pathname = uniqueFilename
@@ -114,6 +111,44 @@ router.post('/', async (request) => {
     }
 })
 
+
+router.get('/', async (request) => {
+
+    const { upload } = request.query
+
+    const response = await fetch(upload)
+
+    const contentType = response.headers.get('content-type')
+    const type = contentType
+    const fileData = await response.arrayBuffer()
+
+    const uniqueFilename = crypto.randomUUID()
+
+    await BUCKET.put(uniqueFilename, fileData, { httpMetadata: { type, contentType } })
+
+    const returnUrl = new URL(request.url)
+    returnUrl.searchParams.delete('upload')
+    returnUrl.pathname = uniqueFilename
+
+    const payload = {
+        success: true,
+        message: `${upload} uploaded successfully`,
+        href: returnUrl,
+    }
+
+    return new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET,HEAD,POST,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Origin',
+            'Access-Control-Max-Age': '86400',
+            'Content-Type': 'application/json'
+        }
+    })
+})
+
+
 router.get('/favicon.ico', async () => {
     return await fetch('https://seanvelasco.com/favicon.ico')
 })
@@ -129,12 +164,12 @@ router.get('/:key', async (request, event) => {
         let body
 
         try {
-            body = await DIAGNOSTICS.get(request.params.key)
+            body = await BUCKET.get(request.params.key)
         }
         catch (error) {
             return new Response('Invalid key', { status: 400 })
         }
-        
+
         response = new Response(await body.body, {
             status: 200,
             headers: {
@@ -149,15 +184,13 @@ router.get('/:key', async (request, event) => {
     return response
 })
 
-
-
 router.delete('/:key', async (request) => {
-    
-        const { key } = request.params
-        
-        await DIAGNOSTICS.delete(key)
 
-        return new Response(`${key} deleted from R2 DIAGNOSTICS`)
+    const { key } = request.params
+
+    await BUCKET.delete(key)
+
+    return new Response(`${key} deleted from bucket`)
 })
 
 router.all('*', async () => {
