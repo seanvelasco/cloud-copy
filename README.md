@@ -2,7 +2,7 @@
 
 ## Usage
 
-Append the URL of the target media to be uploaded as a value to the query parameter `upload`
+Append the URL of the target media to be uploaded as the value to the query parameter `upload`
 
 ```
 https://cc.sean.ph/?upload=URL
@@ -13,7 +13,7 @@ https://cc.sean.ph/?upload=URL
 ```
 https://cc.sean.ph/?upload=https://newsinfo.inquirer.net/1593333/robredo-rareforce-and-flair-of-a-peoples-campaign
 ```
-The above will upload the media to cc.sean.ph and return the URL of the uploaded media in the response body
+The above will upload the media to `cc.sean.ph` and return the URL of the copied media in the response body
 
 ```
 {
