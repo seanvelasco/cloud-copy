@@ -116,6 +116,10 @@ router.get('/', async (request) => {
 
     const { upload } = request.query
 
+    if (!upload) {
+        return new Response(null)
+    }
+
     const response = await fetch(upload)
 
     const contentType = response.headers.get('content-type')
