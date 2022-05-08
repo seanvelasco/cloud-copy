@@ -1,4 +1,4 @@
-name = "cc-to-cloud"
+name = "cc"
 type = "webpack"
 workers_dev = true
 zone_id = '1413fbbe1c42fcc52a2c1b1c92258c1c'
