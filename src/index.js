@@ -234,7 +234,13 @@ router.delete('/:key', async (request) => {
 
     const { key } = request.params
 
-    await BUCKET.delete(key)
+    const file = await BUCKET.get(key)
+
+    if (!file) {
+        return new Response("Not found", {
+            status: 404
+        })
+    }
 
     return new Response(`${key} deleted from bucket`)
 })
