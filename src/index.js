@@ -111,6 +111,24 @@ router.post('/', async (request) => {
     }
 })
 
+router.get('/list', async (request) => {
+    const files = await BUCKET.list()
+    const payload = {
+        success: true,
+        message: 'Files listed successfully',
+        files
+    }
+    return new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET,HEAD,POST,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Origin',
+            'Access-Control-Max-Age': '86400',
+            'Content-Type': 'application/json'
+        }
+    })
+})
 
 router.get('/', async (request) => {
 
@@ -159,27 +177,32 @@ router.get('/favicon.ico', async () => {
 
 router.get('/:key', async (request, event) => {
 
+    const key = request.params.key
+
+    if (!key) {
+        return new Response(null)
+    }
+
     const cache = caches.default
 
     let response = await cache.match(request)
 
     if (!response) {
 
-        let body
+        let file = await BUCKET.get(key)
 
-        try {
-            body = await BUCKET.get(request.params.key)
-        }
-        catch (error) {
+        if (!file) {
             return new Response('Invalid key', { status: 400 })
         }
+        
+        const payload = await file.body
 
-        response = new Response(await body.body, {
+        response = new Response(payload, {
             status: 200,
             headers: {
                 'cache-control': 'max-age=31536000',
-                'content-type': body.httpMetadata.contentType,
-                'etag': body.etag
+                'content-type': file.httpMetadata.contentType,
+                'etag': file.etag
             }
         })
 
