@@ -192,9 +192,11 @@ router.get('/:key', async (request, event) => {
         let file = await BUCKET.get(key)
 
         if (!file) {
-            return new Response('Invalid key', { status: 400 })
+            return new Response("Not found", {
+                status: 404,
+            })
         }
-        
+
         const payload = await file.body
 
         response = new Response(payload, {
