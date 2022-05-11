@@ -112,12 +112,24 @@ router.post('/', async (request) => {
 })
 
 router.get('/list', async (request) => {
-    const files = await BUCKET.list()
-    const payload = {
-        success: true,
-        message: 'Files listed successfully',
-        files
-    }
+    const { objects } = await BUCKET.list()
+
+    const payload = objects.map(file => {
+        const { httpMetadata, uploaded, size, key } = file
+        const { contentType } = httpMetadata
+
+        const url = new URL(request.url)
+        url.pathname = key
+        const href = url.href
+
+        return {
+            href,
+            contentType,
+            uploaded,
+            size
+        }
+    })
+    
     return new Response(JSON.stringify(payload), {
         status: 200,
         headers: {
@@ -149,7 +161,12 @@ router.get('/', async (request) => {
     await BUCKET.put(uniqueFilename, fileData, { httpMetadata: { type, contentType } })
 
     const returnUrl = new URL(request.url)
-    returnUrl.searchParams.delete('upload')
+    
+    for (const key of Object.keys(await request.query)) {
+        console.log(key)
+        returnUrl.searchParams.delete(key)
+    }
+
     returnUrl.pathname = uniqueFilename
 
     const payload = {
