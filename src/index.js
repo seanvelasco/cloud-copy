@@ -188,9 +188,9 @@ router.get('/', async (request) => {
 })
 
 
-router.get('/favicon.ico', async () => {
-    return await fetch('https://seanvelasco.com/favicon.ico')
-})
+// router.get('/favicon.ico', async () => {
+//     return await fetch('https://seanvelasco.com/favicon.ico')
+// })
 
 router.get('/:key', async (request, event) => {
 
